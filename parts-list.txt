@@ -1,0 +1,26 @@
+Parts list:
+
+Sensor board:
+- Ciseco Powerpod regulators:  
+	- http://shop.ciseco.co.uk/powerpod-1117-3v3/ for the board
+	- https://store-8d73a.mybigcommerce.com/powerpod-1117-5v0/ for the ultrasonic sensor
+- Ciseco RFu dev board http://shop.ciseco.co.uk/rfu-developer-board/
+- Ciseco RFu328 http://shop.ciseco.co.uk/rf-328-arduino-atmega-328-compatible-radio-transceiver-rfu-328/
+- 4x AA battery holder (Maplin)
+- 4x AA lithium batteries
+- 1 x 150 ohm resistor + 1 x NPN transistor (to turn off power to ultrasonic sensor)
+- 1 x Seeed ultrasonic rangefinder
+- 2 x 33kOhm resistors (voltage divider for battery level)
+
+Sensor physical case: 
+ - IP55 junction box, 
+ - velcro sticky strips to fix to bridge girder, 
+ - sugru to fix sensor to the outside of the box (poor planning!)
+ - grommet for drilled box hole, gland for ultrasound cable to emerge. 
+ - I also glue-gunned the sensor into semi-waterproof state ;-)
+ 
+Gateway device (can take multiple sensors):
+ - 1 x Raspberry Pi
+ - 1 x Ciseco Slice of Radio board (SRF for Pi) http://shop.ciseco.co.uk/slice-of-radio-wireless-rf-transciever-for-the-raspberry-pi/
+ - Node Red software
+ 
