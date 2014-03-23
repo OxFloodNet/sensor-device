@@ -15,10 +15,6 @@ Base components:
  * Meaning: Device R1, Ultrasonic Sensor, Reading: 65cm to water surface.
  * Example message: aR1B5500----
  * Meaning: Device R1, Battery sensor, Reading: 5500mV (5.5v remaining in battery)
-
-Sensor gateway:
- * Raspberry Pi running a Ciseco SRF radio and LLAP listener
- * Code to be supplied for Node-Red
  
 First sensor deployed
 ![](https://raw.githubusercontent.com/OxFloodNet/network/master/images/First-Sensor-Deployment.jpg)
