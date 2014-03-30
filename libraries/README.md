@@ -2,7 +2,7 @@ Libraries
 
 ###OxFloodNet_Sensor Libraries:
 * OneWire 
-* Dallas 
+* Dallas_Temperature
 * LLAPSerial
 
 ###Original sensor libraries:
