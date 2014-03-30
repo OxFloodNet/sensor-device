@@ -1,5 +1,10 @@
 Libraries
 
-* OneWire library used in OxFloodNet_Sensor
-* Dallas library used in OxFloodNet_Sensor
+###OxFloodNet_Sensor Libraries:
+* OneWire 
+* Dallas 
+* LLAPSerial
 
+###Original sensor libraries:
+* Grove_Ultrasonic_Ranger in original hardware
+* LLAPSerial
