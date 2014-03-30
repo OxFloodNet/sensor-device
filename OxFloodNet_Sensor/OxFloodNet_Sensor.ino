@@ -3,26 +3,28 @@
  * Availabe form http://www.coolcomponents.co.uk/ultrasonic-range-finder-xl-ez3.html
  *
  * Transmits reading every 5 minutes
- * Data transmitted is of form aXXRIVRnnn--
- * Battery readings every 10th cycle  aXXBATTv.vvv
+ * Data transmitted is of form aXXUnnn-----
+ * Battery readings every 10th cycle  aXXBvvvv----
  *
- * Where XX is the device ID, nnn is the distance to the water in cm, v.vvv is battery voltage
+ * Where XX is the device ID, nnn is the distance to the water in cm, vvvv is battery voltage in mV
+ * Other messages sent are: aXXSTARTED upon startup
+ * aXXUMax----- and aXXUErr----- if max range is reached or an error in the reading is seen.
  *
  * Sensor is controled using a single N-Channel MOSFET, Gate to SENSOR_ENABLE,
  * Source to GND, Drain to -ve of sensor, Sensor +ve to +3V.
  *
+ * NOTE: For initial testing, wakeup time set to 5mins and battery interval to 4 cycles
  * (c) Andrew D Lindsay 2014
  */
-
 
 #include "LLAPSerial.h"	// include the library
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
-#define VERSION_STRING "V0.6"
+#define VERSION_STRING "V0.7"
 
 // Number of readings before a battery reading is taken
-#define BATTERY_READ_INTERVAL 10
+#define BATTERY_READ_INTERVAL 4
 
 // Hardware pin defines
 // Enable SRF
@@ -353,7 +355,7 @@ void loop() {
   // Determine if we need to send a battery voltage reading or a distance reading
   if( --batteryCountDown <= 0 ) {
     int mV = readVcc();
-    LLAP.sendIntWithDP("BATT", mV, 3 );
+    LLAP.sendIntWithDP("B", mV, 3 );
     batteryCountDown = BATTERY_READ_INTERVAL;
   } 
   else {
@@ -362,13 +364,13 @@ void loop() {
     // Send reading 5 times to make sure it gets through
     for(int n = 0; n<3; n++ ) {
       if( cm > 17 ) {
-        LLAP.sendInt( "RIVR", cm );
+        LLAP.sendInt( "U", cm );
       } 
       else if( cm == 0 ) {
-        LLAP.sendMessage( "RIVRMax" );
+        LLAP.sendMessage( "UMax" );
       } 
       else {
-        LLAP.sendMessage( "RIVRErr" );
+        LLAP.sendMessage( "UErr" );
       }
       delay(30);
     }
