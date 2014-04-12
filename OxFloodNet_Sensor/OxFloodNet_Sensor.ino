@@ -21,10 +21,10 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
-#define VERSION_STRING "V0.7"
+#define VERSION_STRING "V0.8"
 
 // Number of readings before a battery reading is taken
-#define BATTERY_READ_INTERVAL 4
+#define BATTERY_READ_INTERVAL 10
 
 // Hardware pin defines
 // Enable SRF
@@ -40,7 +40,7 @@
 #define WAKE_INT 2
 
 // Data wire is plugged into port 2 on the Arduino
-#define TEMP_SENSOR_ENABLE 10
+//#define TEMP_SENSOR_ENABLE 10
 #define ONE_WIRE_BUS 5
 
 // Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
@@ -50,10 +50,13 @@ OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
 
 // arrays to hold device address
-DeviceAddress insideThermometer;
-boolean tempSensorFound = false;
+DeviceAddress temperatureSensor;
 
-uint8_t inPin[] = { 9, 11, 12, 13 };
+boolean tempSensorFound = false;
+float latestTemperature = 0.0;
+uint16_t lastUncompDistance = 0;
+
+uint8_t inPin[] = { 9, 10, 11, 12, 13 };
 
 int batteryCountDown = BATTERY_READ_INTERVAL;
 
@@ -163,15 +166,13 @@ uint16_t getRange() {
   int8_t arraysize = 9; // quantity of values to find the median (sample size). Needs to be an odd number
   //declare an array to store the samples. not necessary to zero the array values here, it just makes the code clearer
   uint16_t rangevalue[] = { 
-    0, 0, 0, 0, 0, 0, 0, 0, 0              };
+    0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
+  float temperature = 0.0;
+    
+//  digitalWrite(TEMP_SENSOR_ENABLE, HIGH);
   digitalWrite(SENSOR_ENABLE, HIGH);
-  digitalWrite(TEMP_SENSOR_ENABLE, HIGH);
-  delay(100);
-  
-  if( tempSensorFound ) {
-    sensors.requestTemperatures(); // Send the command to get temperature
-  }
+  delay(50);
 
   while( i < arraysize )
   {								    
@@ -181,14 +182,19 @@ uint16_t getRange() {
     if( rangevalue[i] < 645 && rangevalue[i] >= 15 ) i++;  // ensure no values out of range
     delay(10);                      // wait between samples
   }
+  
   digitalWrite(SENSOR_ENABLE, LOW);
 
   isort(rangevalue,arraysize);        // sort samples
   uint16_t distance = mode(rangevalue,arraysize);  // get median 
 
+  lastUncompDistance = distance;
   // Use temperature comprensation if temp sensor found
   if( tempSensorFound ) {
-    float temperature = sensors.getTempC(insideThermometer);
+    //temperature = sensors.getTempC(temperatureSensor);
+    sensors.requestTemperatures();
+    temperature = sensors.getTempCByIndex(0);
+    latestTemperature = temperature;
 //  Serial.print("Uncomp Dist: ");
 //  Serial.println(distance,DEC);
 //  Serial.print("temperature: ");
@@ -197,7 +203,7 @@ uint16_t getRange() {
     uint16_t newDist = tof * (( 20.05 * sqrt( temperature + 273.15))/2);
     distance = newDist;
   }
-  digitalWrite(TEMP_SENSOR_ENABLE, LOW);
+//  digitalWrite(TEMP_SENSOR_ENABLE, LOW);
 
   return distance; 
 }
@@ -246,7 +252,8 @@ uint8_t setSRFSleep()
   if (!sendCommand("ATSD493E0")) return 2;	// 5 minutes
   //if (!sendCommand("ATSD49E30")) return 2;	// 5 minutes - Wrong!
   //if (!sendCommand("ATSD4E20")) return 2;	// 20 seconds
-  //if (!sendCommand("ATSD1388")) return 2;	// 5 seconds
+//  if (!sendCommand("ATSD1388")) return 2;	// 5 seconds
+  //if (!sendCommand("ATSD3E8")) return 2;	// 1 seconds
   
   if (!sendCommand("ATSM3")) return 3;
   if (!sendCommand("ATDN")) return 4;
@@ -308,8 +315,8 @@ void setup() {
   digitalWrite(SENSOR_ENABLE, LOW);
   pinMode(SENSOR_PIN, INPUT);
 
-  pinMode( TEMP_SENSOR_ENABLE, OUTPUT );
-  digitalWrite( TEMP_SENSOR_ENABLE, HIGH);
+//  pinMode( TEMP_SENSOR_ENABLE, OUTPUT );
+//  digitalWrite( TEMP_SENSOR_ENABLE, HIGH);
 
   // Setup the SRF pins
   pinMode(SRF_RADIO_ENABLE, OUTPUT);    // initialize pin 8 to control the radio
@@ -319,12 +326,13 @@ void setup() {
 
   sensors.begin();
   tempSensorFound = false;
-  if (sensors.getAddress(insideThermometer, 0)) {
+  if (sensors.getAddress(temperatureSensor, 0)) {
     // set the resolution to 9 bit (Each Dallas/Maxim device is capable of several different resolutions)
-    sensors.setResolution(insideThermometer, 9);
+    sensors.setResolution(temperatureSensor, 9);
     tempSensorFound = true;
   }
-  digitalWrite( TEMP_SENSOR_ENABLE, LOW);
+
+//digitalWrite( TEMP_SENSOR_ENABLE, LOW);
 
   batteryCountDown = BATTERY_READ_INTERVAL;
   // Wait for it to be initialised
@@ -351,7 +359,8 @@ void loop() {
   pinMode(SRF_SLEEP, INPUT);                // sleep the radio
   LLAP.sleep(WAKE_INT, RISING, false);      // sleep until woken on pin 2, no pullup (low power)
   pinMode(SRF_SLEEP, OUTPUT);               // wake the radio
-
+//  digitalWrite( TEMP_SENSOR_ENABLE, HIGH);  // power up temp sensor
+  
   // Determine if we need to send a battery voltage reading or a distance reading
   if( --batteryCountDown <= 0 ) {
     int mV = readVcc();
@@ -359,10 +368,19 @@ void loop() {
     batteryCountDown = BATTERY_READ_INTERVAL;
   } 
   else {
+
     // Distance reading
     uint16_t cm = getRange();
-    // Send reading 5 times to make sure it gets through
-    for(int n = 0; n<3; n++ ) {
+    // Send temperature reading
+    if( tempSensorFound ) {
+      int latestTemp = (int)(latestTemperature * 100);
+      LLAP.sendIntWithDP( "T", latestTemp, 2);
+    }
+    // Uncompensated distance
+    LLAP.sendInt( "D", lastUncompDistance);
+    // Send reading 3 times to make sure it gets through
+    for(int n = 0; n<1; n++ ) {
+//      delay(20);
       if( cm > 17 ) {
         LLAP.sendInt( "U", cm );
       } 
@@ -372,34 +390,9 @@ void loop() {
       else {
         LLAP.sendMessage( "UErr" );
       }
-      delay(30);
     }
   }
-
+//  digitalWrite( TEMP_SENSOR_ENABLE, LOW);  // power down temp sensor
 }
-
 // That's all folks
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
