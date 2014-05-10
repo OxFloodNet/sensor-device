@@ -62,7 +62,7 @@ int batteryCountDown = BATTERY_READ_INTERVAL;
 
 uint8_t enterCommandMode();
 // Node ID, default R0, set by input pins
-char nodeId[2] = { 'R', '0' };
+char nodeId[2] = { 'R', '1' };
 
 // Some functions to get the configured node address
 void readNodeId() {
@@ -156,7 +156,7 @@ uint16_t mode(uint16_t *x,int n){
   }
 }
 
-// Get the rance in cm. Need to enable sensor first then wait briefly for it to power up
+// Get the range in cm. Need to enable sensor first then wait briefly for it to power up
 // Disable sensor after use.
 uint16_t getRange() {
   int16_t pulse;  // number of pulses from sensor
