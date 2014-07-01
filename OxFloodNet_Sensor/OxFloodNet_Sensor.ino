@@ -62,7 +62,7 @@ int batteryCountDown = BATTERY_READ_INTERVAL;
 uint8_t enterCommandMode();
 // Node ID, default R0, set by input pins
 // Stricly speaking this should only be digits
-char nodeId[2] = { 'R', '0' };
+char nodeId[2] = { 'R', '1' };
 
 // Some functions to get the configured node address
 void readNodeId() {
