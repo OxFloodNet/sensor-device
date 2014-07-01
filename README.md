@@ -18,3 +18,4 @@ Base components:
  
 First sensor deployed
 ![](https://raw.githubusercontent.com/OxFloodNet/network/master/images/First-Sensor-Deployment.jpg)
+
