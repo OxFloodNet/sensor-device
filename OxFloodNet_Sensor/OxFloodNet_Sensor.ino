@@ -39,8 +39,7 @@
 #define SRF_SLEEP 4
 #define WAKE_INT 2
 
-// Data wire is plugged into port 2 on the Arduino
-//#define TEMP_SENSOR_ENABLE 10
+// Data wire is plugged into port 5 on the Arduino
 #define ONE_WIRE_BUS 5
 
 // Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
@@ -62,6 +61,7 @@ int batteryCountDown = BATTERY_READ_INTERVAL;
 
 uint8_t enterCommandMode();
 // Node ID, default R0, set by input pins
+// Stricly speaking this should only be digits
 char nodeId[2] = { 'R', '0' };
 
 // Some functions to get the configured node address
@@ -250,9 +250,8 @@ uint8_t setSRFSleep()
   //if (!sendCommand("ATSDDBBA0")) return 2;	// 15 minutes
   //if (!sendCommand("ATSD927C0")) return 2;	// 10 minutes
   if (!sendCommand("ATSD493E0")) return 2;	// 5 minutes
-  //if (!sendCommand("ATSD49E30")) return 2;	// 5 minutes - Wrong!
   //if (!sendCommand("ATSD4E20")) return 2;	// 20 seconds
-//  if (!sendCommand("ATSD1388")) return 2;	// 5 seconds
+  //if (!sendCommand("ATSD1388")) return 2;	// 5 seconds
   //if (!sendCommand("ATSD3E8")) return 2;	// 1 seconds
   
   if (!sendCommand("ATSM3")) return 3;
@@ -315,9 +314,6 @@ void setup() {
   digitalWrite(SENSOR_ENABLE, LOW);
   pinMode(SENSOR_PIN, INPUT);
 
-//  pinMode( TEMP_SENSOR_ENABLE, OUTPUT );
-//  digitalWrite( TEMP_SENSOR_ENABLE, HIGH);
-
   // Setup the SRF pins
   pinMode(SRF_RADIO_ENABLE, OUTPUT);    // initialize pin 8 to control the radio
   digitalWrite(SRF_RADIO_ENABLE, HIGH); // select the radio
@@ -331,8 +327,6 @@ void setup() {
     sensors.setResolution(temperatureSensor, 9);
     tempSensorFound = true;
   }
-
-//digitalWrite( TEMP_SENSOR_ENABLE, LOW);
 
   batteryCountDown = BATTERY_READ_INTERVAL;
   // Wait for it to be initialised
@@ -359,7 +353,6 @@ void loop() {
   pinMode(SRF_SLEEP, INPUT);                // sleep the radio
   LLAP.sleep(WAKE_INT, RISING, false);      // sleep until woken on pin 2, no pullup (low power)
   pinMode(SRF_SLEEP, OUTPUT);               // wake the radio
-//  digitalWrite( TEMP_SENSOR_ENABLE, HIGH);  // power up temp sensor
   
   // Determine if we need to send a battery voltage reading or a distance reading
   if( --batteryCountDown <= 0 ) {
@@ -380,7 +373,6 @@ void loop() {
     LLAP.sendInt( "D", lastUncompDistance);
     // Send reading 3 times to make sure it gets through
     for(int n = 0; n<1; n++ ) {
-//      delay(20);
       if( cm > 17 ) {
         LLAP.sendInt( "U", cm );
       } 
@@ -392,7 +384,6 @@ void loop() {
       }
     }
   }
-//  digitalWrite( TEMP_SENSOR_ENABLE, LOW);  // power down temp sensor
 }
 // That's all folks
 
