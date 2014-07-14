@@ -1,14 +1,13 @@
 /** 
- * LLAPDistance_Remote sketch for Ciseco RFu-328 and Maxbotix XL-EZ3 ultrasonic sensor
- * Availabe form http://www.coolcomponents.co.uk/ultrasonic-range-finder-xl-ez3.html
+ * LLAPDistance_Remote sketch for Ciseco RFu-328 and Maxbotix MB7060 XL-MaxSonar-WR1, Standard edition ultrasonic sensor
  *
- * Transmits reading every 5 minutes
+ * Transmits reading every 30s, 5, 10 or 15 minutes depending on jumpers. Default is 10 minutes
  * Data transmitted is of form aXXUnnn-----
  * Battery readings every 10th cycle  aXXBvvvv----
  *
  * Where XX is the device ID, nnn is the distance to the water in cm, vvvv is battery voltage in mV
  * Other messages sent are: aXXSTARTED upon startup
- * aXXUMax----- and aXXUErr----- if max range is reached or an error in the reading is seen.
+ * aXXUMax----- and aXXUErr----- if max range is reached or an error in the reading is seen, i.e. too close.
  *
  * Sensor is controled using a single N-Channel MOSFET, Gate to SENSOR_ENABLE,
  * Source to GND, Drain to -ve of sensor, Sensor +ve to +3V.
@@ -21,7 +20,7 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
-#define VERSION_STRING "V0.8"
+#define VERSION_STRING "V0.9"
 
 // Number of readings before a battery reading is taken
 #define BATTERY_READ_INTERVAL 10
@@ -55,13 +54,14 @@ boolean tempSensorFound = false;
 float latestTemperature = 0.0;
 uint16_t lastUncompDistance = 0;
 
+// Define pins that are not used and are to be made inputs
 uint8_t inPin[] = { 9, 10, 11, 12, 13 };
 
 int batteryCountDown = BATTERY_READ_INTERVAL;
 
 uint8_t enterCommandMode();
 // Node ID, default R0, set by input pins
-// Stricly speaking this should only be digits
+// Stricly speaking this should only be digits, according to the Ciseco LLAP spec.
 char nodeId[2] = { 'R', '1' };
 
 // Some functions to get the configured node address
@@ -156,7 +156,8 @@ uint16_t mode(uint16_t *x,int n){
   }
 }
 
-// Get the rance in cm. Need to enable sensor first then wait briefly for it to power up
+// Get the range in cm. Need to enable sensor first then wait briefly for it to power up
+// Also request temperture sensor, if previously detected, to take a reading.
 // Disable sensor after use.
 uint16_t getRange() {
   int16_t pulse;  // number of pulses from sensor
@@ -169,13 +170,10 @@ uint16_t getRange() {
     0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
   float temperature = 0.0;
-    
-//  digitalWrite(TEMP_SENSOR_ENABLE, HIGH);
   digitalWrite(SENSOR_ENABLE, HIGH);
   delay(50);
 
-  while( i < arraysize )
-  {								    
+  while( i < arraysize ) {								    
     pulse = pulseIn(SENSOR_PIN, HIGH);  // read in time for pin to transition
     if( pulse == 0 ) return 0;
     rangevalue[i]=pulse/58;         // pulses to centimeters (use 147 for inches)
@@ -203,8 +201,6 @@ uint16_t getRange() {
     uint16_t newDist = tof * (( 20.05 * sqrt( temperature + 273.15))/2);
     distance = newDist;
   }
-//  digitalWrite(TEMP_SENSOR_ENABLE, LOW);
-
   return distance; 
 }
 
@@ -247,6 +243,8 @@ uint8_t setSRFSleep()
   {
     if (!enterCommandMode()) return 1;
   }
+  // Use D9 & D10 links to determine polling interval
+  // TODO
   //if (!sendCommand("ATSDDBBA0")) return 2;	// 15 minutes
   //if (!sendCommand("ATSD927C0")) return 2;	// 10 minutes
   if (!sendCommand("ATSD493E0")) return 2;	// 5 minutes
