@@ -1,9 +1,11 @@
 Maxbotix MaxSonar pinout:
 
-1 
-2 (Pulse Width Distance) [http://www.maxbotix.com/articles/033.htm](http://www.maxbotix.com/articles/033.htm)
-3 (Analog Voltage Distance) [http://www.maxbotix.com/articles/032.htm](http://www.maxbotix.com/articles/032.htm)
-4
-5
-6 V+
-7 GND
+PIN:
+
+1. BW (RS232 control?)
+2. Pulse Width Output [http://www.maxbotix.com/articles/033.htm](http://www.maxbotix.com/articles/033.htm)
+3. Analog Voltage Output  [http://www.maxbotix.com/articles/032.htm](http://www.maxbotix.com/articles/032.htm)
+4. Serial Interface RX
+5. Serial Interface TX (Output)
+6. V+
+7. GND
