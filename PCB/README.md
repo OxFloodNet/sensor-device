@@ -1,4 +1,6 @@
-This contains the EAGLE files and gerbers for creating an Oxfloodnet Sensor PCB v3.1. The sensor has the following features:
+This repository contains the EAGLE files and gerbers for creating an Oxfloodnet Sensor PCB v3.1. 
+
+The sensor device has the following features:
 * Arduino-compatible code wireless sensor node
 * Wireless
   * Transmits using 433, 868 or 915* MHz  (*USA only)
@@ -9,6 +11,10 @@ This contains the EAGLE files and gerbers for creating an Oxfloodnet Sensor PCB 
   * Option for Long-life (1 x 3.6v Tadiran Lithium Cell) or Off-the Shelf (2 x 1.6v AA Batteries)
   * Battery voltage reading sent every 10th cycle
   * Extremely low power sleep mode (~30uA)
+* Maxbotix ultrasonic ranger
+  * Compatible with most Maxbotix sensors
+  * Maxbotix MB7060 XL-MaxSonar-WR1 IP67 outdoor-rated sensor recommended due to humidity/condensation issues
+  * Maxbotix MB1230 works but has condensation issues above streams
 * DS18B20 temperature sensor 
   * to compensate for speed of sound in different conditions
   * Temperature data also a useful byproduct
