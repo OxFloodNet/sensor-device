@@ -20,8 +20,8 @@ The sensor device has the following features:
   * Temperature data also a useful byproduct
   * Molex header connection to board for easy maintenance
 * Jumpers/Headers
-  * Control poll cycle (0s, 5, 10 or 15 minutes depending on jumpers)
-  * FTDI (not powered)
+  * Control poll cycle (10s, 5, 10 or 15 minutes depending on jumpers)
+  * FTDI connector for programming sketch to RFu-328 (not powered)
   * Molex temperature connector
   * Maxbotix 7-way header
   
@@ -36,3 +36,4 @@ The assembled v3.0 sensor can be seen in the pictures below along with aseembly 
 ![](https://raw.githubusercontent.com/OxFloodNet/sensor-device/master/PCB/2014-06-16%2020.43.26.jpg)
 ![](https://raw.githubusercontent.com/OxFloodNet/sensor-device/master/PCB/2014-06-16%2021.30.13.jpg)
 ![](https://raw.githubusercontent.com/OxFloodNet/sensor-device/master/PCB/2014-06-18%2021.20.05.jpg)
+
