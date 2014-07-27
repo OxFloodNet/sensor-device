@@ -2611,9 +2611,9 @@ grid 2.54 mm, diameter 6 mm</description>
 <element name="BAT1" library="SparkFun-Electromechanical" package="BATTERY-AA" value="CELL 1" x="39.37" y="29.21" rot="R90"/>
 <element name="ANT1" library="wirepad" package="2,54/0,8" value="Antenna Pad" x="2.54" y="26.67"/>
 <element name="X1" library="adafruit" package="U.FL" value="u.FL" x="3.81" y="19.05" rot="R90"/>
-<element name="-VE" library="wirepad" package="2,54/0,8" value="" x="32.09" y="22.39"/>
-<element name="+VE" library="wirepad" package="2,54/0,8" value="" x="31.91" y="17.81"/>
-<element name="U1" library="Ciseco Footprints" package="POWER-POD-LANDING" value="POWER-POD" x="29" y="9" rot="R270"/>
+<element name="-VE" library="wirepad" package="2,54/0,8" value="" x="32.09" y="22.39" rot="R270"/>
+<element name="+VE" library="wirepad" package="2,54/0,8" value="" x="31.91" y="18.445" rot="R270"/>
+<element name="U1" library="Ciseco Footprints" package="POWER-POD-LANDING" value="POWER-POD" x="29" y="8.365" rot="R270"/>
 <element name="C2" library="rcl" package="C025-024X044" value="100nF" x="4" y="14"/>
 <element name="C1" library="rcl" package="C025-024X044" value="100nF" x="8" y="28"/>
 <element name="C3" library="rcl" package="E2,5-6E" value="100uF" x="25" y="19" rot="R270"/>
@@ -2731,9 +2731,6 @@ grid 2.54 mm, diameter 6 mm</description>
 <wire x1="5.588" y1="23.368" x2="7.62" y2="21.336" width="0.4" layer="16"/>
 <wire x1="19.304" y1="21.336" x2="19.52" y2="21.23" width="0.4" layer="16"/>
 <wire x1="5.588" y1="23.368" x2="5.4" y2="23.37" width="0.4" layer="16"/>
-<wire x1="34.036" y1="7.62" x2="33.02" y2="7.62" width="0.4" layer="16"/>
-<wire x1="33.02" y1="7.62" x2="29" y2="7.73" width="0.4" layer="16"/>
-<wire x1="34.036" y1="7.62" x2="34.29" y2="7.67919375" width="0.4" layer="16"/>
 <contactref element="C3" pad="+"/>
 <contactref element="C1" pad="1"/>
 <wire x1="20.32" y1="20.32" x2="24.892" y2="20.32" width="0.4" layer="1"/>
@@ -2741,7 +2738,6 @@ grid 2.54 mm, diameter 6 mm</description>
 <wire x1="24.892" y1="20.32" x2="25" y2="20.27" width="0.4" layer="1"/>
 <wire x1="19.812" y1="20.828" x2="19.52" y2="21.23" width="0.4" layer="1"/>
 <wire x1="25.4" y1="19.812" x2="25" y2="20.27" width="0.4" layer="16"/>
-<wire x1="34.036" y1="11.176" x2="34.29" y2="11.176" width="0.4" layer="16"/>
 <wire x1="6.604" y1="24.892" x2="6.604" y2="27.94" width="0.4" layer="1"/>
 <wire x1="5.588" y1="23.876" x2="6.604" y2="24.892" width="0.4" layer="1"/>
 <wire x1="6.604" y1="27.94" x2="6.73" y2="28" width="0.4" layer="1"/>
@@ -2751,17 +2747,22 @@ grid 2.54 mm, diameter 6 mm</description>
 <wire x1="2.8" y1="54.4" x2="2.8" y2="52.4" width="0.4" layer="1"/>
 <wire x1="2.8" y1="52.4" x2="2.54" y2="52.07" width="0.4" layer="1"/>
 <wire x1="2.8" y1="54.4" x2="2.54" y2="54.61" width="0.4" layer="1"/>
-<wire x1="34.036" y1="11.176" x2="29.845" y2="15.367" width="0.4064" layer="16"/>
-<wire x1="29.845" y1="15.367" x2="25.4" y2="19.812" width="0.4064" layer="16"/>
 <wire x1="3.048" y1="31.242" x2="3.048" y2="51.816" width="0.4" layer="1"/>
 <wire x1="6.096" y1="28.194" x2="3.048" y2="31.242" width="0.4" layer="1"/>
 <wire x1="3.048" y1="51.816" x2="2.54" y2="52.07" width="0.4" layer="1"/>
 <wire x1="6.096" y1="28.194" x2="6.73" y2="28" width="0.4" layer="1"/>
-<wire x1="28.194" y1="25.908" x2="27.432" y2="25.908" width="0.4" layer="16"/>
-<wire x1="29.718" y1="24.384" x2="28.194" y2="25.908" width="0.4" layer="16"/>
-<wire x1="29.718" y1="15.24" x2="29.718" y2="24.384" width="0.4" layer="16"/>
+<wire x1="34.29" y1="7.62" x2="29.718" y2="7.62" width="0.4" layer="16"/>
+<wire x1="29.718" y1="7.62" x2="29" y2="7.095" width="0.4" layer="16"/>
+<wire x1="31.242" y1="25.908" x2="29.718" y2="25.908" width="0.4" layer="16"/>
+<wire x1="29.718" y1="25.908" x2="27.432" y2="25.908" width="0.4" layer="16"/>
+<wire x1="44.196" y1="12.954" x2="31.242" y2="25.908" width="0.4" layer="16"/>
 <wire x1="27.432" y1="25.908" x2="27.1742" y2="26.4795" width="0.4" layer="16"/>
-<wire x1="29.718" y1="15.24" x2="29.845" y2="15.367" width="0.4" layer="16"/>
+<wire x1="44.196" y1="12.954" x2="44.196" y2="12.699996875" width="0.4" layer="16"/>
+<wire x1="29.718" y1="22.86" x2="29.718" y2="25.908" width="0.4" layer="16"/>
+<wire x1="28.956" y1="22.098" x2="29.718" y2="22.86" width="0.4" layer="16"/>
+<wire x1="26.67" y1="22.098" x2="28.956" y2="22.098" width="0.4" layer="16"/>
+<wire x1="25.146" y1="20.574" x2="26.67" y2="22.098" width="0.4" layer="16"/>
+<wire x1="25.146" y1="20.574" x2="25" y2="20.27" width="0.4" layer="16"/>
 </signal>
 <signal name="N$4">
 <contactref element="RFU-1" pad="5"/>
@@ -2983,10 +2984,10 @@ grid 2.54 mm, diameter 6 mm</description>
 <signal name="N$3" class="1">
 <contactref element="U1" pad="1"/>
 <contactref element="+VE" pad="1"/>
-<wire x1="29.2" y1="15.2" x2="29.2" y2="13.2" width="0.4" layer="1"/>
-<wire x1="31.6" y1="17.6" x2="29.2" y2="15.2" width="0.4" layer="1"/>
-<wire x1="29.2" y1="13.2" x2="29" y2="12.81" width="0.4" layer="1"/>
-<wire x1="31.6" y1="17.6" x2="31.91" y2="17.81" width="0.4" layer="1"/>
+<wire x1="29.718" y1="16.764" x2="29.718" y2="12.192" width="0.4" layer="1"/>
+<wire x1="31.242" y1="18.288" x2="29.718" y2="16.764" width="0.4" layer="1"/>
+<wire x1="29.718" y1="12.192" x2="29" y2="12.175" width="0.4" layer="1"/>
+<wire x1="31.242" y1="18.288" x2="31.91" y2="18.445" width="0.4" layer="1"/>
 </signal>
 </signals>
 </board>
