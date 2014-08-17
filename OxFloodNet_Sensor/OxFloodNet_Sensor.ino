@@ -20,10 +20,16 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
-#define VERSION_STRING "V0.9"
+#define VERSION_STRING "V1.0"
 
 // Number of readings before a battery reading is taken
 #define BATTERY_READ_INTERVAL 10
+
+// Polling interval values
+#define FIFTEENMINS 0
+#define TENMINS 1
+#define FIVEMINS 2
+#define TWENTYSEC 3
 
 // Hardware pin defines
 // Enable SRF
@@ -58,36 +64,60 @@ uint16_t lastUncompDistance = 0;
 uint8_t inPin[] = { 9, 10, 11, 12, 13 };
 
 int batteryCountDown = BATTERY_READ_INTERVAL;
+int pollingInterval = FIFTEENMINS;
 
 uint8_t enterCommandMode();
-// Node ID, default R0, set by input pins
+// Node ID, default 00, set by input pins
 // Stricly speaking this should only be digits, according to the Ciseco LLAP spec.
-char nodeId[2] = { 'R', '1' };
+char nodeId[2] = { '0', '0' };
 
-// Some functions to get the configured node address
-void readNodeId() {
+// Some functions to get the configured node address and polling
+void readJumpers() {
   // Set analog input pins to read digital values, set internal pullup
+  // ugly - refactor in loop.
   pinMode(A0, INPUT);
   pinMode(A1, INPUT);
   pinMode(A2, INPUT);
   pinMode(A3, INPUT);
   pinMode(A4, INPUT);
   pinMode(A5, INPUT);
+  pinMode(9,INPUT);
+  pinMode(10,INPUT);
+  pinMode(12,INPUT);
+  pinMode(13,INPUT);
   digitalWrite(A0, HIGH);
   digitalWrite(A1, HIGH);
   digitalWrite(A2, HIGH);
   digitalWrite(A3, HIGH);
   digitalWrite(A4, HIGH);
   digitalWrite(A5, HIGH);
+  digitalWrite(9, HIGH);
+  digitalWrite(10, HIGH);
+  digitalWrite(12, HIGH);
+  digitalWrite(13, HIGH);
   
   // Read input and parse value
-  // 
-  int a = PINC & 0x3F;
-  a ^= 0x3F;
+  int digit2 = ((PINB & 0x30) >> 4) | ((PINC & 0x03) << 2);
+  digit2 ^= 0x0f;
+  int digit1 = (PINC & 0x3c) >> 2;
+  digit1 ^= 0x0f;
+  nodeId[0] = '0' + min(digit1,9);
+  nodeId[1] = '0' + min(digit2,9);
+  pollingInterval = ((PINB & 0x06) >> 1) ^ 0x03;
+
+  Serial.println(PINB,HEX);
+  Serial.println(PINC,HEX);
   
+  Serial.println(pollingInterval,DEC);
+
+  Serial.println(digit1,DEC);
+  Serial.println(digit2,DEC);
   // A0, A1 are first part, R, S, T, W
   // A2 - A5 are 0-9, A-F
-    int id1 = a & 0x03;
+/*
+  int a = PINC & 0x3F;
+  a ^= 0x3F;
+  int id1 = a & 0x03;
   switch( id1 ) {
     case 0: nodeId[0] = 'R'; break;
     case 1: nodeId[0] = 'S'; break;
@@ -99,6 +129,7 @@ void readNodeId() {
     nodeId[1] = '0' + id2;
   else
     nodeId[1] = 'A' + (id2-10);
+*/
 
   // Reset analog inputs to set internal pullup off
   digitalWrite(A0, LOW);
@@ -107,6 +138,10 @@ void readNodeId() {
   digitalWrite(A3, LOW);
   digitalWrite(A4, LOW);
   digitalWrite(A5, LOW);
+  digitalWrite(9, LOW);
+  digitalWrite(10, LOW);
+  digitalWrite(12, LOW);
+  digitalWrite(13, LOW);
 }
 
 // **************************************
@@ -244,10 +279,26 @@ uint8_t setSRFSleep()
     if (!enterCommandMode()) return 1;
   }
   // Use D9 & D10 links to determine polling interval
-  // TODO
+  // Select polling interval based on jumpers
+  switch( pollingInterval ) {
+    case TWENTYSEC:
+      if (!sendCommand("ATSD4E20")) return 2;	// 20 seconds
+      break;
+ //   case ONEMIN:
+ //     if (!sendCommand("ATSDEA60")) return 2;	// 1 Minute
+ //     break;
+    case FIVEMINS:
+      if (!sendCommand("ATSD493E0")) return 2;	// 5 minutes
+      break;
+    case TENMINS:
+      if (!sendCommand("ATSD927C0")) return 2;	// 10 minutes
+      break;      
+    default:
+      if (!sendCommand("ATSDDBBA0")) return 2;	// 15 minutes
+  }
   //if (!sendCommand("ATSDDBBA0")) return 2;	// 15 minutes
   //if (!sendCommand("ATSD927C0")) return 2;	// 10 minutes
-  if (!sendCommand("ATSD493E0")) return 2;	// 5 minutes
+  //if (!sendCommand("ATSD493E0")) return 2;	// 5 minutes
   //if (!sendCommand("ATSD4E20")) return 2;	// 20 seconds
   //if (!sendCommand("ATSD1388")) return 2;	// 5 seconds
   //if (!sendCommand("ATSD3E8")) return 2;	// 1 seconds
@@ -296,7 +347,7 @@ void setup() {
   // initialise serial:
   Serial.begin(115200);
   // Get device ID
-  readNodeId();
+  readJumpers();
   // Initialise the LLAPSerial library
   LLAP.init( nodeId );
   analogReference(DEFAULT);
