@@ -20,7 +20,7 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
-#define VERSION_STRING "V1.0"
+#define VERSION_STRING "V3.1.2"
 
 // Number of readings before a battery reading is taken
 #define BATTERY_READ_INTERVAL 10
