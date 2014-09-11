@@ -4,28 +4,46 @@ OxFloodNet sensor V3.1 uses Arduino code. It's written for the Ciseco RFu328 whi
 
 The code is intended to be generic, with parameters being set by jumpers on the PCB. These are directly connected to ATMega328 pins which are read at setup() and converted into parameters for "Node ID" and "Wakeup Period".
 
+![OxFloodNet v3.1 PCB Jumper Layout](https://raw.githubusercontent.com/OxFloodNet/sensor-device/master/OxFloodNet_Sensor/2014-09-11%2020.52.24.jpg "Jumper Layout")
 
-Jumpers & Pins
+In the image above, the jumpers should be read from left to right: 
 <pre>
-Set Wakeup Period
+A5 ,A4 ,A3 ,A2   - Node ID high digit
+A1 ,A0 ,D13,D12  - Node ID low digit
+D10, D9          - Wakeup Period (backwards?)
+
+
+The first eight represent the *Node ID* as two nibbles, four jumpers each:
+<pre>
+
+ High Hex Digit:
+  8   4   2   1  (binary digit)
+ A5  A4  A3  A2  (ATMega328 pin)
+ 
+ Low Hex Digit: 
+  8   4   2   1  (binary digit)
+ A1  A0 D13 D12  (ATMega328 pin)
+ 
+ Examples:
+  Node ID 0x21 would be a jumper on A3 (2) and D12.   
+  Jumper A4&A3&A0 would make 0x64. 
+  Jumper D13&A5&A4 would make high digit: (8+4 = B) and low digit: (2) = 0xB2
+
+</pre>
+
+The 9th & 10th jumpers from the left represent *Wakeup Period* and has four possible values mapped to a number of minutes to sleep for:
+<pre>
 D9  D10 Value
 [ ] [ ] 0      - 15 Minutes (default)
 [ ] [x] 1      - 10 Minutes
 [x] [ ] 2      - 5 Minutes
 [x] [x] 3      - 20 Seconds
+</pre>
 
-Set Node ID (consists of 2 x 4-pin bytes):
- First Digit:
-  8   4   2   1  (binary digit)
- A5  A4  A3  A2  (ATMega328 pin)
- 
- Second Digit: 
-  8   4   2   1  (binary digit)
- A1  A0 D13 D12  (ATMega328 pin)
- 
- So, for example, node ID 21 would be a jumper on A3 and D12.   Jumper A4&A3&A0 would make 64.
+The last jumper on the right is unused but is marked PWR.
 
 
+<pre>
 Pin usage on ATMega328:
 
 D3 - Sensor input
