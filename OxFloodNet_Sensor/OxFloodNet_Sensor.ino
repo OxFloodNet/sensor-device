@@ -308,6 +308,9 @@ uint8_t setSRFSleep()
   //if (!sendCommand("ATSD4E20")) return 2;	// 20 seconds
   //if (!sendCommand("ATSD1388")) return 2;	// 5 seconds
   //if (!sendCommand("ATSD3E8")) return 2;	// 1 seconds
+
+  if (!sendCommand("ATDR3")) return 3;	// Set data rate to 1.2kbps  (2= 38.4k)
+  if (!sendCommand("ATAC")) return 3;	// Apply changes
   
   if (!sendCommand("ATSM3")) return 3;
   if (!sendCommand("ATDN")) return 4;
