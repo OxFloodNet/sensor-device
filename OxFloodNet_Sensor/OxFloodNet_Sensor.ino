@@ -228,7 +228,7 @@ uint16_t getRange() {
   uint16_t distance = mode(rangevalue,arraysize);  // get median 
 
   lastUncompDistance = distance;
-  // Use temperature comprensation if temp sensor found
+  // Use temperature compensation if temp sensor found
   if( tempSensorFound ) {
     //temperature = sensors.getTempC(temperatureSensor);
     sensors.requestTemperatures();
@@ -410,34 +410,33 @@ void setup() {
 // The main loop, we basically wake up the SRF, take a reading, transmit reading then go back to sleep
 void loop() {
 
-  // Determine if we need to send a battery voltage reading or a distance reading
+  // Determine if we need to send a battery voltage reading yet 
   if( --batteryCountDown <= 0 ) {
     int mV = readVcc();
     LLAP.sendIntWithDP("B", mV, 3 );
     batteryCountDown = BATTERY_READ_INTERVAL;
   } 
-  else {
 
-    // Distance reading
-    uint16_t cm = getRange();
-    // Send temperature reading
-    if( tempSensorFound ) {
-      int latestTemp = (int)(latestTemperature * 100);
-      LLAP.sendIntWithDP( "T", latestTemp, 2);
-    }
-    // Uncompensated distance
-    LLAP.sendInt( "D", lastUncompDistance);
-    // Send reading 3 times to make sure it gets through
-    for(int n = 0; n<1; n++ ) {
-      if( cm > 17 ) {
-        LLAP.sendInt( "U", cm );
-      } 
-      else if( cm == 0 ) {
-        LLAP.sendMessage( "UMax" );
-      } 
-      else {
-        LLAP.sendMessage( "UErr" );
-      }
+  // Start Ultrasonic distance reading
+  uint16_t cm = getRange();
+  // Send temperature reading
+  if( tempSensorFound ) {
+    int latestTemp = (int)(latestTemperature * 100);
+    LLAP.sendIntWithDP( "T", latestTemp, 2);
+  }
+  // Uncompensated distance
+//  LLAP.sendInt( "D", lastUncompDistance);
+  
+  // Send reading n times to make sure it gets through
+  for(int n = 0; n < 1; n++ ) {
+    if( cm > 17 ) {
+      LLAP.sendInt( "D", cm );  // Send uncompensated distance
+    } 
+    else if( cm == 0 ) {
+      LLAP.sendMessage( "DMax" );
+    } 
+    else {
+      LLAP.sendMessage( "DErr" );
     }
   }
 
