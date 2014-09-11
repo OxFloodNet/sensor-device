@@ -1,8 +1,23 @@
-Oxford flood network sensor 
+Oxford Flood Network Sensor Code
+=================================
+
+Version 3.1 - Codename: Bulstake
+
+Features: 
+* Variable Node ID with jumpers
+* Variable wake timer with jumpers
+* Dallas DS18B20 Temperature sensor for speed of sound compensation
+* Compatible with Maxbotix ultrasonic sensor range using PWM interface
+* STARTED message sent 5 times at start
+* Battery message sent every 10 readings
+
+Issues: 
+* >Max reading leads to no LLAP message being sent instead of error
+* Unplug FTDI cable before trying normal operation (TX/RX get diverted)
 
 OxFloodNet sensor V3.1 uses Arduino code. It's written for the Ciseco RFu328 which uses an ATMega328. The code uses some register settings, so is not directly compatible with other boards without modification. It relies on the Ciseco RFu328 which includes the Ciseco SRF radio transceiver. This is needed to manage the very low-power sleep modes, with the SRF waking the 328 up using an interrupt pin after a sleep timer completes.
 
-The code is intended to be generic, with parameters being set by jumpers on the PCB. These are directly connected to ATMega328 pins which are read at setup() and converted into parameters for "Node ID" and "Wakeup Period".
+The code is intended to be generic, with parameters being set by jumpers on the PCB. These are directly connected to ATMega328 pins which are read at setup() and converted into parameters for "Node ID" and "Wakeup Period". The board has no FTDI chip which means an FTDI programming cable is needed to update the code (must be removed again for board to operate properly)
 
 ![OxFloodNet v3.1 PCB Jumper Layout](https://raw.githubusercontent.com/OxFloodNet/sensor-device/master/OxFloodNet_Sensor/2014-09-11%2020.52.24.jpg "Jumper Layout")
 
