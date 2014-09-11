@@ -9,16 +9,16 @@ D9  D10 Value
 [x] [ ] 2      - 5 Minutes
 [x] [x] 3      - 20 Seconds
 
-Set Sensor ID (two binary digits):
+Set Sensor ID (consists of 2 x 4-pin bytes):
  First Digit:
-  8   4   2   1  
- A5  A4  A3  A2
+  8   4   2   1  (binary digit)
+ A5  A4  A3  A2  (ATMega328 pin)
  
  Second Digit: 
-  8   4   2   1
- A1  A0 D13 D12
+  8   4   2   1  (binary digit)
+ A1  A0 D13 D12  (ATMega328 pin)
  
- So, for example, node ID 21 would be a jumper on A3 and D12
+ So, for example, node ID 21 would be a jumper on A3 and D12.   Jumper A4&A3&A0 would make 64.
 
 
 Pin usage on ATMega328:
