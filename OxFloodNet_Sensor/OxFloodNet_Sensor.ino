@@ -389,8 +389,33 @@ void setup() {
     LLAP.sendInt("ERR",val); // Diagnostic
     delay(5000);	// try again in 5 seconds
   }
+  for(int i=0;i<3;i++) {
+    LLAP.sendMessage("STARTED");
+  }
 
-  LLAP.sendMessage("STARTED");
+
+
+    // Initial Distance reading
+    uint16_t cm = getRange();
+    // Send temperature reading
+    if( tempSensorFound ) {
+      int latestTemp = (int)(latestTemperature * 100);
+      LLAP.sendIntWithDP( "T", latestTemp, 2);
+    }
+    // Uncompensated distance
+    LLAP.sendInt( "D", lastUncompDistance);
+    // Send reading 3 times to make sure it gets through
+    for(int n = 0; n<1; n++ ) {
+      if( cm > 17 ) {
+        LLAP.sendInt( "U", cm );
+      } 
+      else if( cm == 0 ) {
+        LLAP.sendMessage( "UMax" );
+      } 
+      else {
+        LLAP.sendMessage( "UErr" );
+      }
+    }
 
 }
 
