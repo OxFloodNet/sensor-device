@@ -46,7 +46,8 @@ The first eight represent the *Node ID* as two nibbles, four jumpers each:
 
 </pre>
 
-The 9th & 10th jumpers from the left represent *Wakeup Period* and has four possible values mapped to a number of minutes to sleep for:
+The 9th & 10th jumpers from the left represent *Wakeup Period* and has four possible values mapped
+to a number of minutes to sleep for:
 <pre>
 D9  D10 Value
 [ ] [ ] 0      - 15 Minutes (default)
