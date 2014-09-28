@@ -14,14 +14,13 @@
  *
  * NOTE: For initial testing, wakeup time set to 5mins and battery interval to 4 cycles
  * (c) Andrew D Lindsay 2014
- * Contributions from Ben Ward
  */
 
 #include "LLAPSerial.h"	// include the library
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
-#define VERSION_STRING "V3.1.3"  
+#define VERSION_STRING "V3.1.2"
 
 // Number of readings before a battery reading is taken
 #define BATTERY_READ_INTERVAL 10
@@ -32,7 +31,7 @@
 #define FIVEMINS 2
 #define TWENTYSEC 3
 
-// Set RFu Hardware pins (not board jumpers) 
+// Hardware pin defines
 // Enable SRF
 #define SRF_RADIO_ENABLE 8
 // Enable the sensor, controlled by FET
@@ -45,7 +44,7 @@
 #define SRF_SLEEP 4
 #define WAKE_INT 2
 
-// Temperature sensor data line connects to pin 5 on the Arduino
+// Data wire is plugged into port 5 on the Arduino
 #define ONE_WIRE_BUS 5
 
 // Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
@@ -60,14 +59,14 @@ DeviceAddress temperatureSensor;
 boolean tempSensorFound = false;
 float latestTemperature = 0.0;
 uint16_t lastUncompDistance = 0;
-int batteryCountDown = BATTERY_READ_INTERVAL;
-int pollingInterval = FIFTEENMINS;
 
 // Define pins that are not used and are to be made inputs
 uint8_t inPin[] = { 9, 10, 11, 12, 13 };
 
-uint8_t enterCommandMode();
+int batteryCountDown = BATTERY_READ_INTERVAL;
+int pollingInterval = FIFTEENMINS;
 
+uint8_t enterCommandMode();
 // Node ID, default 00, set by input pins
 // Stricly speaking this should only be digits, according to the Ciseco LLAP spec.
 char nodeId[2] = { '0', '0' };
@@ -97,23 +96,15 @@ void readJumpers() {
   digitalWrite(12, HIGH);
   digitalWrite(13, HIGH);
   
-  // Set individual registers
-  // TODO: Explain these
+  // Read input and parse value
   int digit2 = ((PINB & 0x30) >> 4) | ((PINC & 0x03) << 2);
   digit2 ^= 0x0f;
   int digit1 = (PINC & 0x3c) >> 2;
   digit1 ^= 0x0f;
-
-  // set Node ID from jumper pins
   nodeId[0] = '0' + min(digit1,9);
   nodeId[1] = '0' + min(digit2,9);
-  
-  // set polling interval from jumper pins
   pollingInterval = ((PINB & 0x06) >> 1) ^ 0x03;
 
-
-  // DEBUG to serial port
-  // Print the values of Port B & Port C
   Serial.println("Debug: ");
   Serial.print("Port B: ");
   Serial.println(PINB,HEX);
@@ -127,8 +118,6 @@ void readJumpers() {
   Serial.print(digit1,DEC);
   Serial.print(" ");
   Serial.println(digit2,DEC);
-  
-  // TODO: Tidy  
   // A0, A1 are first part, R, S, T, W
   // A2 - A5 are 0-9, A-F
 /*
@@ -160,7 +149,6 @@ void readJumpers() {
   digitalWrite(12, LOW);
   digitalWrite(13, LOW);
 }
-
 
 // **************************************
 // Functions used in processing readings
@@ -209,12 +197,10 @@ uint16_t mode(uint16_t *x,int n){
   }
 }
 
-// Start of Ultrasonic sensor code
+// Get the range in cm. Need to enable sensor first then wait briefly for it to power up
+// Also request temperture sensor, if previously detected, to take a reading.
+// Disable sensor after use.
 uint16_t getRange() {
-  // Get the range in cm. Need to enable sensor first then wait briefly for it to power up
-  // Also request temperture sensor, if previously detected, to take a reading.
-  // Disable sensor after use.
-  
   int16_t pulse;  // number of pulses from sensor
   int i=0;
   // These values are for calculating a mathematical median for a number of samples as
@@ -258,13 +244,14 @@ uint16_t getRange() {
   }
   return distance; 
 }
-// End of Ultrasonic sensor code
 
-// Start of Battery monitoring
+// End of Maxbotix sensor code
+// **************************************
+
+// Battery monitoring
 int readVcc() {
   // Read 1.1V reference against AVcc
   // set the reference to Vcc and the measurement to the internal 1.1V reference
-  
   #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
     ADMUX = _BV(REFS0) | _BV(MUX4) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
   #elif defined (__AVR_ATtiny24__) || defined(__AVR_ATtiny44__) || defined(__AVR_ATtiny84__)
@@ -287,9 +274,10 @@ int readVcc() {
   result = 1125300L / result; // Calculate Vcc (in mV); 1125300 = 1.1*1023*1000
   return (int)result; // Vcc in millivolts
 }
-// End of Battery monitoring
 
-// Start of SRF Sleep Code
+/*
+
+ */
 uint8_t setSRFSleep() 
 {
   if (!enterCommandMode())	// if failed once then try again
@@ -328,9 +316,8 @@ uint8_t setSRFSleep()
   if (!sendCommand("ATDN")) return 4;
   return 5; // success
 }
-// End of SRF Sleep Code
 
-// Start of SRF command functions
+
 uint8_t enterCommandMode()
 {
   delay(1200);
@@ -363,27 +350,18 @@ uint8_t checkOK(int timeout)
   }
   return 0;
 }
-// End of SRF command functions
 
-// BEGIN
+
 void setup() {
-
   // initialise serial:
   Serial.begin(115200);
-
   // Get device ID
   readJumpers();
-
   // Initialise the LLAPSerial library
   LLAP.init( nodeId );
-
-  // Initialise countdown for number of sleeps before sending battery reading
-  batteryCountDown = BATTERY_READ_INTERVAL;
-  
-
+  analogReference(DEFAULT);
 
   // Set unused digital pins to input and turn on pull-up resistor
-  analogReference(DEFAULT);
   for(int i = 0; i< 5; i++ ) {
     pinMode(inPin[i], INPUT);
     digitalWrite(inPin[i], HIGH);
@@ -395,25 +373,24 @@ void setup() {
   pinMode(SENSOR_PIN, INPUT);
 
   // Setup the SRF pins
-  pinMode(SRF_RADIO_ENABLE, OUTPUT);    // initialize pin to control the radio
+  pinMode(SRF_RADIO_ENABLE, OUTPUT);    // initialize pin 8 to control the radio
   digitalWrite(SRF_RADIO_ENABLE, HIGH); // select the radio
   pinMode(SRF_SLEEP, OUTPUT);
   digitalWrite( SRF_SLEEP, LOW );
 
-  sensors.begin();                      // start OneWire sensors
-  tempSensorFound = false;              // clear flag for sensor discovery
-  
-  // Discover OneWire temperature sensor
+  sensors.begin();
+  tempSensorFound = false;
   if (sensors.getAddress(temperatureSensor, 0)) {
-    // If we find a sensor, set the resolution to 9 bit 
-    // (Each Dallas/Maxim device is capable of several different resolutions)
+    // set the resolution to 9 bit (Each Dallas/Maxim device is capable of several different resolutions)
     sensors.setResolution(temperatureSensor, 9);
-
-    tempSensorFound = true;             // set discovery flag
+    tempSensorFound = true;
   }
-  delay(200);                           //   Wait for sensor to be initialised
 
-  // Send "STARTED" message if successful or "ERR" if not able to set SleepMode 3.
+  batteryCountDown = BATTERY_READ_INTERVAL;
+  // Wait for it to be initialised
+  delay(200);
+
+  // Send STARTED message if successful or ERROR if not able to set SleepMode 3.
   // set up sleep mode 3 (low = awake)
   uint8_t val;
   while ((val = setSRFSleep()) != 5)
@@ -422,15 +399,10 @@ void setup() {
     delay(5000);	// try again in 5 seconds
   }
 
-
   // Repeat "STARTED" message 5 times to alert
   for(int i=0;i<5;i++) {
     LLAP.sendMessage("STARTED");
     delay(1000);
-    // send version 
-//    char* temp =  strcat("VER",VERSION_STRING);
-//    LLAP.sendMessage(temp);
-//    delay(1000);
   }
 
 }
