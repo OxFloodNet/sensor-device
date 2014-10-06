@@ -20,7 +20,7 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
-#define VERSION_STRING "V1.0"
+#define VERSION_STRING "V3.1.2"
 
 // Number of readings before a battery reading is taken
 #define BATTERY_READ_INTERVAL 10
@@ -74,7 +74,7 @@ char nodeId[2] = { '0', '0' };
 // Some functions to get the configured node address and polling
 void readJumpers() {
   // Set analog input pins to read digital values, set internal pullup
-  // ugly - refactor in loop.
+  // TODO: ugly - refactor in loop.
   pinMode(A0, INPUT);
   pinMode(A1, INPUT);
   pinMode(A2, INPUT);
@@ -105,12 +105,18 @@ void readJumpers() {
   nodeId[1] = '0' + min(digit2,9);
   pollingInterval = ((PINB & 0x06) >> 1) ^ 0x03;
 
+  Serial.println("Debug: ");
+  Serial.print("Port B: ");
   Serial.println(PINB,HEX);
+  Serial.print("Port C: ");
   Serial.println(PINC,HEX);
   
+  Serial.print("Polling Interval: ");
   Serial.println(pollingInterval,DEC);
 
-  Serial.println(digit1,DEC);
+  Serial.print("Node ID Digits: ");
+  Serial.print(digit1,DEC);
+  Serial.print(" ");
   Serial.println(digit2,DEC);
   // A0, A1 are first part, R, S, T, W
   // A2 - A5 are 0-9, A-F
@@ -222,7 +228,7 @@ uint16_t getRange() {
   uint16_t distance = mode(rangevalue,arraysize);  // get median 
 
   lastUncompDistance = distance;
-  // Use temperature comprensation if temp sensor found
+  // Use temperature compensation if temp sensor found
   if( tempSensorFound ) {
     //temperature = sensors.getTempC(temperatureSensor);
     sensors.requestTemperatures();
@@ -302,6 +308,9 @@ uint8_t setSRFSleep()
   //if (!sendCommand("ATSD4E20")) return 2;	// 20 seconds
   //if (!sendCommand("ATSD1388")) return 2;	// 5 seconds
   //if (!sendCommand("ATSD3E8")) return 2;	// 1 seconds
+
+//  if (!sendCommand("ATDR3")) return 3;	// Set data rate to 1.2kbps  (2= 38.4k)
+//  if (!sendCommand("ATAC")) return 3;	// Apply changes
   
   if (!sendCommand("ATSM3")) return 3;
   if (!sendCommand("ATDN")) return 4;
@@ -390,49 +399,53 @@ void setup() {
     delay(5000);	// try again in 5 seconds
   }
 
-  LLAP.sendMessage("STARTED");
+  // Repeat "STARTED" message 5 times to alert
+  for(int i=0;i<5;i++) {
+    LLAP.sendMessage("STARTED");
+    delay(1000);
+  }
 
 }
 
 // The main loop, we basically wake up the SRF, take a reading, transmit reading then go back to sleep
 void loop() {
 
-  // Short delay to allow reading to be sent then sleep
-  delay(50);
-  pinMode(SRF_SLEEP, INPUT);                // sleep the radio
-  LLAP.sleep(WAKE_INT, RISING, false);      // sleep until woken on pin 2, no pullup (low power)
-  pinMode(SRF_SLEEP, OUTPUT);               // wake the radio
-  
-  // Determine if we need to send a battery voltage reading or a distance reading
+  // Determine if we need to send a battery voltage reading yet 
   if( --batteryCountDown <= 0 ) {
     int mV = readVcc();
     LLAP.sendIntWithDP("B", mV, 3 );
     batteryCountDown = BATTERY_READ_INTERVAL;
   } 
-  else {
 
-    // Distance reading
-    uint16_t cm = getRange();
-    // Send temperature reading
-    if( tempSensorFound ) {
-      int latestTemp = (int)(latestTemperature * 100);
-      LLAP.sendIntWithDP( "T", latestTemp, 2);
-    }
-    // Uncompensated distance
-    LLAP.sendInt( "D", lastUncompDistance);
-    // Send reading 3 times to make sure it gets through
-    for(int n = 0; n<1; n++ ) {
-      if( cm > 17 ) {
-        LLAP.sendInt( "U", cm );
-      } 
-      else if( cm == 0 ) {
-        LLAP.sendMessage( "UMax" );
-      } 
-      else {
-        LLAP.sendMessage( "UErr" );
-      }
+  // Start Ultrasonic distance reading
+  uint16_t cm = getRange();
+  // Send temperature reading
+  if( tempSensorFound ) {
+    int latestTemp = (int)(latestTemperature * 100);
+    LLAP.sendIntWithDP( "T", latestTemp, 2);
+  }
+  // Uncompensated distance
+//  LLAP.sendInt( "D", lastUncompDistance);
+  
+  // Send reading n times to make sure it gets through
+  for(int n = 0; n < 1; n++ ) {
+    if( cm > 17 ) {
+      LLAP.sendInt( "D", cm );  // Send uncompensated distance
+    } 
+    else if( cm == 0 ) {
+      LLAP.sendMessage( "DMax" );
+    } 
+    else {
+      LLAP.sendMessage( "DErr" );
     }
   }
+
+  // Short delay to allow reading to be sent then sleep
+  delay(50);
+  pinMode(SRF_SLEEP, INPUT);                // sleep the radio
+  LLAP.sleep(WAKE_INT, RISING, false);      // sleep until woken on pin 2, no pullup (low power)
+  pinMode(SRF_SLEEP, OUTPUT);               // wake the radio
+
 }
 // That's all folks
 
