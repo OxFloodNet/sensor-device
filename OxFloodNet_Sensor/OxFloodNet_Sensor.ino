@@ -1,16 +1,22 @@
 /** 
- * LLAPDistance_Remote sketch for Ciseco RFu-328 and Maxbotix MB7060 XL-MaxSonar-WR1, Standard edition ultrasonic sensor
+ * OxFloodNet_SensorV32 sketch for Ciseco RFu-328 and Maxbotix MB7060 XL-MaxSonar-WR1, Standard edition ultrasonic sensor
  *
- * Transmits reading every 30s, 5, 10 or 15 minutes depending on jumpers. Default is 10 minutes
+ * Transmits reading every 1, 5, 10 or 15 minutes depending on jumpers. Default is 15 minutes
  * Data transmitted is of form aXXUnnn-----
  * Battery readings every 10th cycle  aXXBvvvv----
  *
  * Where XX is the device ID, nnn is the distance to the water in cm, vvvv is battery voltage in mV
- * Other messages sent are: aXXSTARTED upon startup
+ * Other messages sent are: aXXSTARTvvv- upon startup, vvv is version ID
  * aXXUMax----- and aXXUErr----- if max range is reached or an error in the reading is seen, i.e. too close.
+ * aXXUnnnn----, aXXDnnnn---- and aXXTnn.n----
+ * D is compensated distance, U is Raw Distance, T is temperature and B is battery reading
  *
  * Sensor is controled using a single N-Channel MOSFET, Gate to SENSOR_ENABLE,
  * Source to GND, Drain to -ve of sensor, Sensor +ve to +3V.
+ *
+ * For first 10 minutes after reset/powerup, sensor wakeup is every twenty seconds (
+ * for next 10 minutes the sleep is every 1 minutes, after this sleep interval
+ * becomes value set on jumpers (5, 10 or 15 mins) 
  *
  * NOTE: For initial testing, wakeup time set to 5mins and battery interval to 4 cycles
  * (c) Andrew D Lindsay 2014
@@ -20,16 +26,8 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
-#define VERSION_STRING "V3.1.2"
-
-// Number of readings before a battery reading is taken
-#define BATTERY_READ_INTERVAL 10
-
-// Polling interval values
-#define FIFTEENMINS 0
-#define TENMINS 1
-#define FIVEMINS 2
-#define TWENTYSEC 3
+// Used in START msg to indicate firmware version, 313 = 3.1.3
+#define VERSION_ID 313
 
 // Hardware pin defines
 // Enable SRF
@@ -40,12 +38,44 @@
 #define SENSOR_PIN 3
 // Using Sleep Mode 1, SLEEP must be HIGH to run
 // Using Sleep Mode 2, SLEEP must be LOW to run
-// Using Sleep Mode 3, SLEEP must be LOW to run
+// Using Sleep Mode 3, SLEEP must be LOW to run, uses interrupt to wakeup
 #define SRF_SLEEP 4
 #define WAKE_INT 2
-
-// Data wire is plugged into port 5 on the Arduino
+// OneWire bus pin for temperature sensor pin
 #define ONE_WIRE_BUS 5
+
+// Software configuration defines
+// Number of readings before a battery reading is taken
+#define BATTERY_READ_INTERVAL 10
+
+// Polling interval jumper link enumeration values, 1, 5, 10 or 15 minutes
+#define FIFTEENMINS 0
+#define TENMINS 1
+#define FIVEMINS 2
+#define ONEMIN 3
+#define TWENTYSEC 4
+
+// Define AT commands to set polling intervals defined above
+// Order is Fifteen Mins, Ten Mins, Five Mins, 1 Min, 20 seconds
+char *pollingIntervalCmds[] = { 
+  "ATSDDBBA0",  // 15 Minutes
+  "ATSD927C0",  // 10 Minutes
+  "ATSD493E0",  // 5 Minutes
+  "ATSDEA60",   // 1 Minute
+  "ATSD4E20"    // 20s
+};
+
+// define startup polling modes
+// 10 minutes of 20s interval is 30 wakeups
+// After 10 mins this is reset to 10 and interval is 1 minute 
+#define NORMAL_POLL 0
+#define MED_POLL 1
+#define FAST_POLL 2
+
+#define FAST_POLL_COUNT 30
+#define MED_POLL_COUNT 10
+
+// Hardware objects
 
 // Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
 OneWire oneWire(ONE_WIRE_BUS);
@@ -56,98 +86,49 @@ DallasTemperature sensors(&oneWire);
 // arrays to hold device address
 DeviceAddress temperatureSensor;
 
-boolean tempSensorFound = false;
-float latestTemperature = 0.0;
-uint16_t lastUncompDistance = 0;
-
 // Define pins that are not used and are to be made inputs
+#define PIN_COUNT 5
 uint8_t inPin[] = { 9, 10, 11, 12, 13 };
 
+// Other global variables
+boolean tempSensorFound = false;
 int batteryCountDown = BATTERY_READ_INTERVAL;
 int pollingInterval = FIFTEENMINS;
+int startupSequence = FAST_POLL;
+int startupCounter = FAST_POLL_COUNT;
 
-uint8_t enterCommandMode();
 // Node ID, default 00, set by input pins
 // Stricly speaking this should only be digits, according to the Ciseco LLAP spec.
 char nodeId[2] = { '0', '0' };
 
+// Forward reference
+uint8_t enterCommandMode();
+
 // Some functions to get the configured node address and polling
 void readJumpers() {
   // Set analog input pins to read digital values, set internal pullup
-  // TODO: ugly - refactor in loop.
-  pinMode(A0, INPUT);
-  pinMode(A1, INPUT);
-  pinMode(A2, INPUT);
-  pinMode(A3, INPUT);
-  pinMode(A4, INPUT);
-  pinMode(A5, INPUT);
-  pinMode(9,INPUT);
-  pinMode(10,INPUT);
-  pinMode(12,INPUT);
-  pinMode(13,INPUT);
-  digitalWrite(A0, HIGH);
-  digitalWrite(A1, HIGH);
-  digitalWrite(A2, HIGH);
-  digitalWrite(A3, HIGH);
-  digitalWrite(A4, HIGH);
-  digitalWrite(A5, HIGH);
-  digitalWrite(9, HIGH);
-  digitalWrite(10, HIGH);
-  digitalWrite(12, HIGH);
-  digitalWrite(13, HIGH);
-  
+  uint8_t jumperPins[] = { 
+    A0, A1, A2, A3, A4, A5, 9, 10, 12, 13 };
+  for( int n = 0; n < 10; n++ ) {
+    pinMode( jumperPins[n], INPUT );
+    digitalWrite( jumperPins[n], HIGH);
+  }
+
   // Read input and parse value
+  // TODO: These are upside down for the board layout.
   int digit2 = ((PINB & 0x30) >> 4) | ((PINC & 0x03) << 2);
   digit2 ^= 0x0f;
   int digit1 = (PINC & 0x3c) >> 2;
   digit1 ^= 0x0f;
+  // Only use digits 0 - 9, 
   nodeId[0] = '0' + min(digit1,9);
   nodeId[1] = '0' + min(digit2,9);
   pollingInterval = ((PINB & 0x06) >> 1) ^ 0x03;
 
-  Serial.println("Debug: ");
-  Serial.print("Port B: ");
-  Serial.println(PINB,HEX);
-  Serial.print("Port C: ");
-  Serial.println(PINC,HEX);
-  
-  Serial.print("Polling Interval: ");
-  Serial.println(pollingInterval,DEC);
-
-  Serial.print("Node ID Digits: ");
-  Serial.print(digit1,DEC);
-  Serial.print(" ");
-  Serial.println(digit2,DEC);
-  // A0, A1 are first part, R, S, T, W
-  // A2 - A5 are 0-9, A-F
-/*
-  int a = PINC & 0x3F;
-  a ^= 0x3F;
-  int id1 = a & 0x03;
-  switch( id1 ) {
-    case 0: nodeId[0] = 'R'; break;
-    case 1: nodeId[0] = 'S'; break;
-    case 2: nodeId[0] = 'T'; break;
-    case 3: nodeId[0] = 'W'; break;
+  // Reset inputs to set internal pullup off
+  for( int n = 0; n < 10; n++ ) {
+    digitalWrite( jumperPins[n], LOW);
   }
-  int id2 = a >> 2;
-  if( id2 <10 ) 
-    nodeId[1] = '0' + id2;
-  else
-    nodeId[1] = 'A' + (id2-10);
-*/
-
-  // Reset analog inputs to set internal pullup off
-  digitalWrite(A0, LOW);
-  digitalWrite(A1, LOW);
-  digitalWrite(A2, LOW);
-  digitalWrite(A3, LOW);
-  digitalWrite(A4, LOW);
-  digitalWrite(A5, LOW);
-  digitalWrite(9, LOW);
-  digitalWrite(10, LOW);
-  digitalWrite(12, LOW);
-  digitalWrite(13, LOW);
 }
 
 // **************************************
@@ -200,7 +181,10 @@ uint16_t mode(uint16_t *x,int n){
 // Get the range in cm. Need to enable sensor first then wait briefly for it to power up
 // Also request temperture sensor, if previously detected, to take a reading.
 // Disable sensor after use.
-uint16_t getRange() {
+// Returns compensated, uncompensated and temperature values as reference params
+// boolean true returned form function for valid reading. false for <23cm or out of range
+// Calling function can still do checks to determine whether to use reading or not.
+boolean getRange( int *outRawDistance, int *outDistance, float *outTemperature ) {
   int16_t pulse;  // number of pulses from sensor
   int i=0;
   // These values are for calculating a mathematical median for a number of samples as
@@ -208,7 +192,7 @@ uint16_t getRange() {
   int8_t arraysize = 9; // quantity of values to find the median (sample size). Needs to be an odd number
   //declare an array to store the samples. not necessary to zero the array values here, it just makes the code clearer
   uint16_t rangevalue[] = { 
-    0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    0, 0, 0, 0, 0, 0, 0, 0, 0           };
 
   float temperature = 0.0;
   digitalWrite(SENSOR_ENABLE, HIGH);
@@ -221,28 +205,29 @@ uint16_t getRange() {
     if( rangevalue[i] < 645 && rangevalue[i] >= 15 ) i++;  // ensure no values out of range
     delay(10);                      // wait between samples
   }
-  
+
+  // Turn off sensor as no longer needed
   digitalWrite(SENSOR_ENABLE, LOW);
 
   isort(rangevalue,arraysize);        // sort samples
   uint16_t distance = mode(rangevalue,arraysize);  // get median 
 
-  lastUncompDistance = distance;
-  // Use temperature compensation if temp sensor found
+  *outRawDistance = distance;
+  // Use temperature comprensation if temp sensor found
   if( tempSensorFound ) {
-    //temperature = sensors.getTempC(temperatureSensor);
     sensors.requestTemperatures();
     temperature = sensors.getTempCByIndex(0);
-    latestTemperature = temperature;
-//  Serial.print("Uncomp Dist: ");
-//  Serial.println(distance,DEC);
-//  Serial.print("temperature: ");
-//  Serial.println(temperature);
+    *outTemperature = temperature;
     float tof = distance * 0.0058;
     uint16_t newDist = tof * (( 20.05 * sqrt( temperature + 273.15))/2);
-    distance = newDist;
+    *outDistance = newDist;
   }
-  return distance; 
+  // Add check for validity of reading
+  if( *outRawDistance <= 23 ) {    // 23cm seems to be the minimum value
+    return false;
+  }
+
+  return true; 
 }
 
 // End of Maxbotix sensor code
@@ -252,66 +237,48 @@ uint16_t getRange() {
 int readVcc() {
   // Read 1.1V reference against AVcc
   // set the reference to Vcc and the measurement to the internal 1.1V reference
-  #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
-    ADMUX = _BV(REFS0) | _BV(MUX4) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
-  #elif defined (__AVR_ATtiny24__) || defined(__AVR_ATtiny44__) || defined(__AVR_ATtiny84__)
-    ADMUX = _BV(MUX5) | _BV(MUX0);
-  #elif defined (__AVR_ATtiny25__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny85__)
-    ADMUX = _BV(MUX3) | _BV(MUX2);
-  #else
-    ADMUX = _BV(REFS0) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
-  #endif  
- 
+#if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
+  ADMUX = _BV(REFS0) | _BV(MUX4) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
+#elif defined (__AVR_ATtiny24__) || defined(__AVR_ATtiny44__) || defined(__AVR_ATtiny84__)
+  ADMUX = _BV(MUX5) | _BV(MUX0);
+#elif defined (__AVR_ATtiny25__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny85__)
+  ADMUX = _BV(MUX3) | _BV(MUX2);
+#else
+  ADMUX = _BV(REFS0) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
+#endif  
+
   delay(2); // Wait for Vref to settle
   ADCSRA |= _BV(ADSC); // Start conversion
   while (bit_is_set(ADCSRA,ADSC)); // measuring
- 
+
   uint8_t low  = ADCL; // must read ADCL first - it then locks ADCH  
   uint8_t high = ADCH; // unlocks both
- 
+
   long result = (high<<8) | low;
- 
+
   result = 1125300L / result; // Calculate Vcc (in mV); 1125300 = 1.1*1023*1000
   return (int)result; // Vcc in millivolts
 }
 
 /*
-
+ Set the sleep mode on the SRF, this requires AT commands to set sleep interval
+ This is not written to permanent store as this resets back to no sleep on power cycle.
  */
-uint8_t setSRFSleep() 
+
+// TODO need to be able to set sleep based on current startup sequence and polling interval 
+uint8_t setSRFSleep( int inPolling ) 
 {
+  //  int selectedPollingInterval = TENMINS;    // Set a default
   if (!enterCommandMode())	// if failed once then try again
   {
-    if (!enterCommandMode()) return 1;
+    if (!enterCommandMode()) 
+      if (!enterCommandMode()) 
+        return 1;
   }
-  // Use D9 & D10 links to determine polling interval
-  // Select polling interval based on jumpers
-  switch( pollingInterval ) {
-    case TWENTYSEC:
-      if (!sendCommand("ATSD4E20")) return 2;	// 20 seconds
-      break;
- //   case ONEMIN:
- //     if (!sendCommand("ATSDEA60")) return 2;	// 1 Minute
- //     break;
-    case FIVEMINS:
-      if (!sendCommand("ATSD493E0")) return 2;	// 5 minutes
-      break;
-    case TENMINS:
-      if (!sendCommand("ATSD927C0")) return 2;	// 10 minutes
-      break;      
-    default:
-      if (!sendCommand("ATSDDBBA0")) return 2;	// 15 minutes
-  }
-  //if (!sendCommand("ATSDDBBA0")) return 2;	// 15 minutes
-  //if (!sendCommand("ATSD927C0")) return 2;	// 10 minutes
-  //if (!sendCommand("ATSD493E0")) return 2;	// 5 minutes
-  //if (!sendCommand("ATSD4E20")) return 2;	// 20 seconds
-  //if (!sendCommand("ATSD1388")) return 2;	// 5 seconds
-  //if (!sendCommand("ATSD3E8")) return 2;	// 1 seconds
 
-//  if (!sendCommand("ATDR3")) return 3;	// Set data rate to 1.2kbps  (2= 38.4k)
-//  if (!sendCommand("ATAC")) return 3;	// Apply changes
-  
+  // setup the selected polling interval
+  if (!sendCommand( pollingIntervalCmds[inPolling]) ) return 2;
+  //  if (!sendCommand( pollingIntervalCmds[selectedPollingInterval]) ) return 2;
   if (!sendCommand("ATSM3")) return 3;
   if (!sendCommand("ATDN")) return 4;
   return 5; // success
@@ -335,9 +302,9 @@ uint8_t sendCommand(char* lpszCommand)
   return checkOK(100);
 }
 
-uint8_t checkOK(int timeout)
+uint8_t checkOK(uint32_t timeout)
 {
-  static uint32_t time = millis();
+  uint32_t time = millis();
   while (millis() - time < timeout)
   {
     if (Serial.available() >= 3)
@@ -357,12 +324,13 @@ void setup() {
   Serial.begin(115200);
   // Get device ID
   readJumpers();
+
   // Initialise the LLAPSerial library
   LLAP.init( nodeId );
   analogReference(DEFAULT);
 
   // Set unused digital pins to input and turn on pull-up resistor
-  for(int i = 0; i< 5; i++ ) {
+  for(int i = 0; i< PIN_COUNT; i++ ) {
     pinMode(inPin[i], INPUT);
     digitalWrite(inPin[i], HIGH);
   }
@@ -390,62 +358,102 @@ void setup() {
   // Wait for it to be initialised
   delay(200);
 
-  // Send STARTED message if successful or ERROR if not able to set SleepMode 3.
+  // Send START message if successful or ERROR if not able to set SleepMode 3.
   // set up sleep mode 3 (low = awake)
   uint8_t val;
-  while ((val = setSRFSleep()) != 5)
-  {
+  while ((val = setSRFSleep(TWENTYSEC)) != 5) {
     LLAP.sendInt("ERR",val); // Diagnostic
     delay(5000);	// try again in 5 seconds
   }
-
-  // Repeat "STARTED" message 5 times to alert
-  for(int i=0;i<5;i++) {
-    LLAP.sendMessage("STARTED");
-    delay(1000);
+  
+  // Send STARTED message upto 5 times if no ACK received.
+  for(int i = 0; i<5; i++) {
+    LLAP.sendInt("START", VERSION_ID);
+    // TODO: Wait 100mS for ACK, if received continue, otherwise send next STARTED
+    delay(20);
   }
-
 }
 
 // The main loop, we basically wake up the SRF, take a reading, transmit reading then go back to sleep
 void loop() {
+  float temperature = 0.0;
+  int rawDistance = 0;
+  int distance = 0;
 
-  // Determine if we need to send a battery voltage reading yet 
+  // Determine if we need to send a battery voltage reading or a distance reading
   if( --batteryCountDown <= 0 ) {
     int mV = readVcc();
     LLAP.sendIntWithDP("B", mV, 3 );
     batteryCountDown = BATTERY_READ_INTERVAL;
   } 
+  else {
+    // Distance reading
+    boolean rangeValid = getRange( &rawDistance, &distance, &temperature);
+    // Send temperature reading
+    if( tempSensorFound ) {
+      int latestTemp = (int)(temperature * 100);
+      LLAP.sendIntWithDP( "T", latestTemp, 2);
+    }
+    // Uncompensated distance
+    LLAP.sendInt( "U", rawDistance);
+    // Send reading 3 times to make sure it gets through
+    //    for(int n = 0; n<1; n++ ) {
 
-  // Start Ultrasonic distance reading
-  uint16_t cm = getRange();
-  // Send temperature reading
-  if( tempSensorFound ) {
-    int latestTemp = (int)(latestTemperature * 100);
-    LLAP.sendIntWithDP( "T", latestTemp, 2);
-  }
-  // Uncompensated distance
-//  LLAP.sendInt( "D", lastUncompDistance);
-  
-  // Send reading n times to make sure it gets through
-  for(int n = 0; n < 1; n++ ) {
-    if( cm > 17 ) {
-      LLAP.sendInt( "D", cm );  // Send uncompensated distance
-    } 
-    else if( cm == 0 ) {
-      LLAP.sendMessage( "DMax" );
+    if( rangeValid ) {
+      //if( rawDistance > 23 ) {    // 23cm seems to be the minimum value
+      LLAP.sendInt( "D", distance );
     } 
     else {
-      LLAP.sendMessage( "DErr" );
+      if( rawDistance == 0 ) {
+        LLAP.sendMessage( "UMax" );
+      } 
+      else {
+        LLAP.sendMessage( "UErr" );
+      }
     }
   }
 
-  // Short delay to allow reading to be sent then sleep
+  // Determine if we are still in startup sequence, if so, do we need to
+  // adjust polling interval.
+  if( startupSequence != NORMAL_POLL ) {
+    if( --startupCounter <= 0 ) {
+      // Move to next sequence
+      startupSequence--;
+      // Reset time interval
+      int selectedPollingInterval = TENMINS;
+      // Setup for next polling sequence
+      switch( startupSequence ) {
+// removed as would never use this code        
+//      case FAST_POLL:
+//        selectedPollingInterval = TWENTYSEC;
+//        break;
+      case MED_POLL:
+        selectedPollingInterval = ONEMIN;
+        startupCounter = MED_POLL_COUNT;
+        break;
+      default:
+        // Use value set by jumpers
+        selectedPollingInterval = pollingInterval;
+        break;
+      }  
+      delay(50);
+      uint8_t val;
+      while ((val = setSRFSleep(selectedPollingInterval)) != 5) {
+        LLAP.sendInt("ERR",val); // Diagnostic
+        delay(5000);	// try again in 5 seconds
+      }
+    }
+  }
+  // Short delay to allow reading to be sent then put sensor to sleep 
   delay(50);
   pinMode(SRF_SLEEP, INPUT);                // sleep the radio
   LLAP.sleep(WAKE_INT, RISING, false);      // sleep until woken on pin 2, no pullup (low power)
   pinMode(SRF_SLEEP, OUTPUT);               // wake the radio
-
 }
 // That's all folks
+
+
+
+
+
 
