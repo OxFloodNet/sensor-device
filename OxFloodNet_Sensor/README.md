@@ -6,9 +6,10 @@ Version 3.1 - Codename: Bulstake
 Features: 
 * Variable Node ID with jumpers
 * Variable wake timer with jumpers
+* Variable poling during startup phase to test device is working
 * Dallas DS18B20 Temperature sensor for speed of sound compensation
 * Compatible with Maxbotix ultrasonic sensor range using PWM interface
-* STARTED message sent 5 times at start
+* STARTvvv message sent 5 times at start, vvv indicates firmware version
 * Battery message sent every 10 readings
 
 Issues: 
@@ -53,10 +54,10 @@ D9  D10 Value
 [ ] [ ] 0      - 15 Minutes (default)
 [ ] [x] 1      - 10 Minutes
 [x] [ ] 2      - 5 Minutes
-[x] [x] 3      - 20 Seconds
+[x] [x] 3      - 1 Minute
 </pre>
 
-The last jumper on the right is unused but is marked PWR.
+The last jumper on the right is unused but is marked PWR. This for possible expanstion and additional sensors.
 
 
 <pre>
@@ -65,7 +66,7 @@ Pin usage on ATMega328:
 D3 - Sensor input
 D5 - Temperature sensor, One Wire bus
 D6 - Sensor Enable - Low to enable
-D8 - SRF Radio enable - ??? to enable
+D8 - SRF Radio enable - High to enable
 D9 - Wakeup period 0
 D10 - Wakeup period 1
 D12 - First Node ID digit bit 0
