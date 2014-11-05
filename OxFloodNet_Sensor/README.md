@@ -1,7 +1,7 @@
 Oxford Flood Network Sensor Code
 =================================
 
-Version 3.1 - Codename: Bulstake
+Version 3.1.4 - Codename: Bulstake
 
 Features: 
 * Variable Node ID with jumpers
