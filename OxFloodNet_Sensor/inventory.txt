@@ -1,4 +1,0 @@
-?? - Test (slave mode)
-22 - External Antenna v3.1.2 - 20 seconds - Hogacre bracket mount
-42 - External Antenna v3.1.2 - 20 seconds
-84 - External Antenna v3.1.2 - 20 seconds
