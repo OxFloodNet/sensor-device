@@ -213,7 +213,7 @@ boolean getRange( int *outRawDistance, int *outDistance, float *outTemperature )
   uint16_t distance = mode(rangevalue,arraysize);  // get median 
 
   *outRawDistance = distance;
-  // Use temperature comprensation if temp sensor found
+  // Use temperature compensation if temp sensor found
   if( tempSensorFound ) {
     sensors.requestTemperatures();
     temperature = sensors.getTempCByIndex(0);
@@ -380,13 +380,13 @@ void loop() {
   int rawDistance = 0;
   int distance = 0;
 
-  // Determine if we need to send a battery voltage reading or a distance reading
+  // Determine if we need to send a battery voltage reading yet
   if( --batteryCountDown <= 0 ) {
     int mV = readVcc();
     LLAP.sendIntWithDP("B", mV, 3 );
     batteryCountDown = BATTERY_READ_INTERVAL;
   } 
-  else {
+
     // Distance reading
     boolean rangeValid = getRange( &rawDistance, &distance, &temperature);
     // Send temperature reading
@@ -400,18 +400,16 @@ void loop() {
     //    for(int n = 0; n<1; n++ ) {
 
     if( rangeValid ) {
-      //if( rawDistance > 23 ) {    // 23cm seems to be the minimum value
+      //if( rawDistance > 23 )     // 23cm seems to be the minimum value
       LLAP.sendInt( "D", distance );
-    } 
-    else {
+    } else {
       if( rawDistance == 0 ) {
         LLAP.sendMessage( "UMax" );
-      } 
-      else {
+      } else {
         LLAP.sendMessage( "UErr" );
       }
     }
-  }
+  
 
   // Determine if we are still in startup sequence, if so, do we need to
   // adjust polling interval.
