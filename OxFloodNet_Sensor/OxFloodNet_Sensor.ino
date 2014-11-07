@@ -1,5 +1,5 @@
 /** 
- * OxFloodNet_SensorV32 sketch for Ciseco RFu-328 and Maxbotix MB7060 XL-MaxSonar-WR1, Standard edition ultrasonic sensor
+ * OxFloodNet_Sensor sketch for Ciseco RFu-328 and Maxbotix MB7060 XL-MaxSonar-WR1, Standard edition ultrasonic sensor
  *
  * Transmits reading every 1, 5, 10 or 15 minutes depending on jumpers. Default is 15 minutes
  * Data transmitted is of form aXXUnnn-----
@@ -26,8 +26,8 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
-// Used in START msg to indicate firmware version, 313 = 3.1.3
-#define VERSION_ID 313
+// Used in START msg to indicate firmware version, 314 = 3.1.4
+#define VERSION_ID 314
 
 // Hardware pin defines
 // Enable SRF
