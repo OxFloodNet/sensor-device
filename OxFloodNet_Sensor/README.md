@@ -14,7 +14,7 @@ Features:
 
 Issues: 
 * >Max reading leads to no LLAP message being sent instead of error
-* After programming unplug FTDI cable before trying normal operation (TX/RX get diverted)
+* Unplug FTDI cable before trying normal operation (TX/RX get diverted)
 
 OxFloodNet sensor V3.1 uses Arduino code. It's written for the Ciseco RFu328 which uses an ATMega328. The code uses some register settings, so is not directly compatible with other boards without modification. It relies on the Ciseco RFu328 which includes the Ciseco SRF radio transceiver. This is needed to manage the very low-power sleep modes, with the SRF waking the 328 up using an interrupt pin after a sleep timer completes.
 
