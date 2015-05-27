@@ -45,7 +45,7 @@
 #include <DallasTemperature.h>
 
 // Used in START msg to indicate firmware version, 412 = 4.1.2
-#define VERSION_ID 400
+#define VERSION_ID 411
 
 // Set RFu hardware pins (not board jumpers)
 // Enable SRF
@@ -401,7 +401,7 @@ uint8_t checkOK(uint32_t timeout)
  */
 char toHexHigh( uint8_t h ) {
   h = h>>4;
-  if( h > 9) return 'A' + (h-9);
+  if( h > 9) return 'A' + (h-10);
 
   return '0' + h;
 }
@@ -410,7 +410,7 @@ char toHexHigh( uint8_t h ) {
  */
 char toHexLow( uint8_t h ) {
   h = h & 0x0f;
-  if( h > 9) return 'A' + (h-9);
+  if( h > 9) return 'A' + (h-10);
 
   return '0' + h;
 }
