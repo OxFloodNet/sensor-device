@@ -1,0 +1,18 @@
+Examples/LLAPSensor/LLAPSensor.sln
+Examples/LLAPSensor/LLAPSensor.suo
+Examples/LLAPSensor/LLAPSensor.vcxproj
+Examples/LLAPSensor/LLAPSensor.vcxproj.filters
+Examples/LLAPSensor/LLAPSensor.vcxproj.user
+Examples/LLAPSensor/Visual Micro/.LLAPSensor.vsarduino.h
+Examples/LLAPSensor/Visual Micro/Compile.vmps.xml
+Examples/LLAPSensor/Visual Micro/Configuration.Debug.vmps.xml
+Examples/LLAPSensor/Visual Micro/Upload.vmps.xml
+Examples/LLAP_DHT22/LLAP_DHT22.sln
+Examples/LLAP_DHT22/LLAP_DHT22.suo
+Examples/LLAP_DHT22/LLAP_DHT22.vcxproj
+Examples/LLAP_DHT22/LLAP_DHT22.vcxproj.filters
+Examples/LLAP_DHT22/LLAP_DHT22.vcxproj.user
+Examples/LLAP_DHT22/Visual Micro/.LLAP_DHT22.vsarduino.h
+Examples/LLAP_DHT22/Visual Micro/Compile.vmps.xml
+Examples/LLAP_DHT22/Visual Micro/Configuration.Debug.vmps.xml
+Examples/LLAP_DHT22/Visual Micro/Upload.vmps.xml
