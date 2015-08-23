@@ -178,6 +178,12 @@ void (*menu_funcs[NUM_MENU_ITEM])(void) = {
 
 byte current_menu_item;
 
+char *srfErrMsg[6] = { "Done",
+                       "Cant set command mode",
+                       "ATNT Failed",
+                       "ATID Failed",
+                       "ATDN Failed"
+                     };
 
 // Joystick functions
 
@@ -329,9 +335,12 @@ void displayRSSI( char *rssi ) {
   tft.setTextSize(9);
   tft.print(rssi);
   tft.print("   ");
-  //  int num = atoi( rssi );
 }
 
+void displayError( uint16_t fCol, uint16_t bCol, char* errMsg ) {
+  tft.setTextColor(fCol, bCol);
+  tft.println(errMsg);
+}
 
 /** rangeTest - The range test menu option. Requires the slave
  * module to be used with this.
@@ -349,31 +358,34 @@ void rangeTest() {
   uint8_t ret = setupSRF();
   tft.setTextSize(1);
   tft.setCursor(1, 30);
-  switch ( ret ) {
-    case 1:
-      tft.setTextColor(ST7735_RED, ST7735_BLACK);
-      tft.println("Cant set command mode");
-      break;
-    case 2:
-      tft.setTextColor(ST7735_RED, ST7735_BLACK);
-      tft.println("ATNT3 Failed");
-      break;
-    case 3:
-      tft.setTextColor(ST7735_RED, ST7735_BLACK);
-      tft.println("ATID2305 Failed");
-      break;
-    case 4:
-      tft.setTextColor(ST7735_RED, ST7735_BLACK);
-      tft.println("ATDN Failed");
-      break;
-    case 5:
-      tft.println("Done");
-      break;
-  }
+  if ( ret > 0 ) {
+    displayError(ST7735_RED, ST7735_BLACK, srfErrMsg[ret]);
+    delay(10000);
+  } else
+    tft.println(srfErrMsg[ret]);
+  /*
+    switch ( ret ) {
+      case 1:
+        displayError(ST7735_RED, ST7735_BLACK, "Cant set command mode");
+        break;
+      case 2:
+        displayError(ST7735_RED, ST7735_BLACK, "ATNT Failed");
+        break;
+      case 3:
+        displayError(ST7735_RED, ST7735_BLACK, "ATID Failed");
+        break;
+      case 4:
+        displayError(ST7735_RED, ST7735_BLACK, "ATDN Failed");
+        break;
+      case 5:
+        tft.println("Done");
+        break;
+    }
+  */
   digitalWrite(SRF_RADIO_ENABLE, HIGH); // select the radio
 
-  if ( ret < 5 ) {
-    delay(10000);
+  if ( ret > 0 ) {
+//    delay(10000);
     return;
   }
 
@@ -431,32 +443,37 @@ void rangeTest() {
 
   tft.setTextSize(1);
   tft.setCursor(1, 30);
-  switch ( ret ) {
-    case 1:
-      tft.setTextColor(ST7735_RED, ST7735_BLACK);
-      tft.println("Cant set command mode");
-      delay(10000);
+  if ( ret > 0 ) {
+    displayError(ST7735_RED, ST7735_BLACK, srfErrMsg[ret]);
+    delay(10000);
+  } else
+    tft.println(srfErrMsg[ret]);
+  /*
+    switch ( ret ) {
+      case 1:
+        displayError(ST7735_RED, ST7735_BLACK, "Cant set command mode");
+  //      delay(10000);
+        break;
+      case 2:
+        displayError(ST7735_RED, ST7735_BLACK, "ATNT Failed");
+  //      delay(10000);
+        break;
+      case 3:
+        displayError(ST7735_RED, ST7735_BLACK, "ATID Failed");
+  //      delay(10000);
+        break;
+      case 4:
+        displayError(ST7735_RED, ST7735_BLACK, "ATDN Failed");
+  //      delay(10000);
+        break;
+      case 5:
+        tft.println("Done");
+        break;
+    }
+  */
+  //  if ( ret < 5 )
+  //    delay(10000);
 
-      break;
-    case 2:
-      tft.setTextColor(ST7735_RED, ST7735_BLACK);
-      tft.println("ATNT Failed");
-      delay(10000);
-      break;
-    case 3:
-      tft.setTextColor(ST7735_RED, ST7735_BLACK);
-      tft.println("ATID Failed");
-      delay(10000);
-      break;
-    case 4:
-      tft.setTextColor(ST7735_RED, ST7735_BLACK);
-      tft.println("ATDN Failed");
-      delay(10000);
-      break;
-    case 5:
-      tft.println("Done");
-      break;
-  }
   digitalWrite(SRF_RADIO_ENABLE, HIGH); // select the radio
 
   LLAP.init();
@@ -596,6 +613,7 @@ int getNodeId( char msgType, char *id, char rdgType ) {
   } else if ( msgType == 'b' ) {
     // Check message type as sensors can send 3 messages
     for ( int i = 0; i < lastNodeNum; i++ ) {
+      // TODO: Try strncmp
       if ( id[0] == node[i].id[0] && id[1] == node[i].id[1] &&
            id[2] == node[i].id[2] && id[3] == node[i].id[3] &&
            id[4] == node[i].id[4] && id[5] == node[i].id[5] &&
@@ -929,7 +947,7 @@ uint8_t setupSRF()
   if (!sendCommand("ATNT3")) return 2;
   if (!sendCommand("ATID2305")) return 3;
   if (!sendCommand("ATDN")) return 4;
-  return 5; // success
+  return 0; // success
 }
 
 
@@ -944,7 +962,7 @@ uint8_t restoreSRF()
   if (!sendCommand("ATNT0")) return 2;
   if (!sendCommand("ATID5AA5")) return 3;
   if (!sendCommand("ATDN")) return 4;
-  return 5; // success
+  return 0; // success
 }
 
 
@@ -955,7 +973,7 @@ uint8_t restoreSRF()
 uint8_t enterCommandMode()
 {
   delay(1200);
-  Serial.print("+++");
+  Serial.print(F("+++"));
   delay(500);
   while (Serial.available()) Serial.read();  // flush serial in - get rid of anything received before the +++ was accepted
   delay(500);
